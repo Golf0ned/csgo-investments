@@ -1,4 +1,12 @@
-import { Button, Card, Container, Stack, Row, Col } from "react-bootstrap";
+import {
+  Button,
+  Card,
+  Col,
+  Container,
+  Row,
+  Stack,
+  Table,
+} from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 import "./App.css";
@@ -7,47 +15,48 @@ export default function App() {
   var data = new investments("data.csv");
 
   return (
-    <>
-      <Container>
+    <Container>
+      <Stack gap={4}>
         <Row>
-          <Stack gap={4}>
-            <Row>
-              <h1>Golf0ned's CSGO Investments</h1>
-            </Row>
-            <Row>
-              <div>
-                Got tired of updating spreadsheet. Made web app to do thing.
-              </div>
-            </Row>
-            <Row>
-              <Col>
-                <Card>
-                  <Card.Header>Total Value</Card.Header>
-                  <Card.Body>${data.totalCurrentInvestment}</Card.Body>
-                </Card>
-              </Col>
-              <Col>
-                <Card>
-                  <Card.Header>Total Investment</Card.Header>
-                  <Card.Body>${data.totalinitialInvestment}</Card.Body>
-                </Card>
-              </Col>
-              <Col>
-                <Card>
-                  <Card.Header>Total Profit</Card.Header>
-                  <Card.Body>${data.getTotalProfit()}</Card.Body>
-                </Card>
-              </Col>
-            </Row>
-            <Row>
-              <Button variant="secondary" size="lg">
-                See All Items
-              </Button>
-            </Row>
-          </Stack>
+          <h1>Golf0ned's CSGO Investments</h1>
         </Row>
-      </Container>
-    </>
+        <Row>
+          <div>
+            Got tired of updating spreadsheet. Made web app to do thing.
+          </div>
+        </Row>
+        <Row>
+          <Col>
+            <Card>
+              <Card.Header>Total Value</Card.Header>
+              <Card.Body>${data.totalCurrentInvestment}</Card.Body>
+            </Card>
+          </Col>
+          <Col>
+            <Card>
+              <Card.Header>Total Investment</Card.Header>
+              <Card.Body>${data.totalinitialInvestment}</Card.Body>
+            </Card>
+          </Col>
+          <Col>
+            <Card>
+              <Card.Header>Total Profit</Card.Header>
+              <Card.Body>${data.getTotalProfit()}</Card.Body>
+            </Card>
+          </Col>
+        </Row>
+        <Row>
+          <Button variant="secondary" size="lg">
+            See All Items
+          </Button>
+        </Row>
+        <Row>
+          <Table>
+            <h3>[Table placeholder]</h3>
+          </Table>
+        </Row>
+      </Stack>
+    </Container>
   );
 }
 
