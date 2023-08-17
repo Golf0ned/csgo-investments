@@ -243,6 +243,8 @@ class investments {
     async function parse() {
       return await new Promise((resolve, reject) => {
         try {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
           Papa.parse(file, {
             header: true,
             skipEmptyLines: true,
@@ -326,11 +328,13 @@ class investments {
     return this.totalCurrentInvestment - this.totalInitialInvestment;
   }
 
+  /* @ts-expect-error */
   currentValueOf(itemName: string) {
     // TODO: return market price of itemName
     return 0.76;
   }
 
+  /* @ts-expect-error */
   initialValueOf(itemName: string) {
     // TODO: return average purchase price of itemName
     return 0.69;
@@ -345,6 +349,7 @@ class investments {
     // TODO: Add a new item to the data sheet
   }
 
+  /* @ts-expect-error */
   marketPriceOf(itemName: string) {
     // TODO: get current price of itemName
   }
