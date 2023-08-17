@@ -1,63 +1,125 @@
+import { useState } from "react";
+
 import {
   Button,
   Card,
   Col,
   Container,
+  Nav,
+  Navbar,
   Row,
   Stack,
   Table,
 } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 
+import TitleContent from "./components/TitleContent";
+
 import "./App.css";
 
 export default function App() {
+  const [page, setPage] = useState("Home");
+
   var data = new investments("data.csv");
 
-  return (
-    <Container>
-      <Stack gap={4}>
-        <Row>
-          <h1>Golf0ned's CSGO Investments</h1>
-        </Row>
-        <Row>
-          <div>
-            Got tired of updating spreadsheet. Made web app to do thing.
-          </div>
-        </Row>
-        <Row>
-          <Col>
-            <Card>
-              <Card.Header>Total Value</Card.Header>
-              <Card.Body>${data.totalCurrentInvestment}</Card.Body>
-            </Card>
-          </Col>
-          <Col>
-            <Card>
-              <Card.Header>Total Investment</Card.Header>
-              <Card.Body>${data.totalinitialInvestment}</Card.Body>
-            </Card>
-          </Col>
-          <Col>
-            <Card>
-              <Card.Header>Total Profit</Card.Header>
-              <Card.Body>${data.getTotalProfit()}</Card.Body>
-            </Card>
-          </Col>
-        </Row>
-        <Row>
-          <Button variant="secondary" size="lg">
-            See All Items
-          </Button>
-        </Row>
-        <Row>
-          <Table>
-            <h3>[Table placeholder]</h3>
-          </Table>
-        </Row>
-      </Stack>
-    </Container>
-  );
+  function NavPane() {
+    return (
+      <>
+        <Navbar expand="lg" fixed="top">
+          <Container>
+            <Navbar.Brand onClick={() => handleNavClick("Home")}>
+              CSGO Investments
+            </Navbar.Brand>
+            <Nav>
+              <Nav.Link onClick={() => handleNavClick("Investments")}>
+                Investments
+              </Nav.Link>
+              <Nav.Link onClick={() => handleNavClick("Add")}>
+                Add Items
+              </Nav.Link>
+            </Nav>
+          </Container>
+        </Navbar>
+      </>
+    );
+  }
+
+  function handleNavClick(newPage: string) {
+    console.log("page now " + newPage);
+    setPage(newPage);
+  }
+
+  if (page === "Home") {
+    return (
+      <>
+        <NavPane />
+        <Container>
+          <Stack gap={4}>
+            <TitleContent />
+            <Row>
+              <Col>
+                <Card>
+                  <Card.Header>Total Value</Card.Header>
+                  <Card.Body>${data.totalCurrentInvestment}</Card.Body>
+                </Card>
+              </Col>
+              <Col>
+                <Card>
+                  <Card.Header>Total Investment</Card.Header>
+                  <Card.Body>${data.totalinitialInvestment}</Card.Body>
+                </Card>
+              </Col>
+              <Col>
+                <Card>
+                  <Card.Header>Total Profit</Card.Header>
+                  <Card.Body>${data.getTotalProfit()}</Card.Body>
+                </Card>
+              </Col>
+            </Row>
+            <Row>
+              <Button variant="secondary" size="lg">
+                See All Items
+              </Button>
+            </Row>
+          </Stack>
+        </Container>
+      </>
+    );
+  } else if (page === "Investments") {
+    return (
+      <>
+        <NavPane />
+        <Container>
+          <Stack gap={4}>
+            <TitleContent />
+            <Row>
+              <Table>
+                <h3>[Table placeholder]</h3>
+              </Table>
+            </Row>
+          </Stack>
+        </Container>
+      </>
+    );
+  } else if (page === "Add") {
+    return (
+      <>
+        <NavPane />
+        <Container>
+          <Stack gap={4}>
+            <TitleContent />
+            <Row>
+              <Table>
+                <h3>[Form to add item placeholder]</h3>
+              </Table>
+            </Row>
+          </Stack>
+        </Container>
+      </>
+    );
+  } else {
+    <div>Page not found. :/</div>;
+  }
 }
 
 class investments {
