@@ -9,6 +9,13 @@ export default function TitleContent() {
       <Row>
         <div>Got tired of updating spreadsheet. Made web app to do thing.</div>
       </Row>
+      <hr
+        style={{
+          background: "#adb5bd",
+          height: "5px",
+          border: "none",
+        }}
+      />
     </>
   );
 }

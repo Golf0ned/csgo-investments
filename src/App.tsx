@@ -23,9 +23,183 @@ import TitleContent from "./components/TitleContent";
 
 import "./App.css";
 
-export default function App() {
-  var data = new investments();
+class investments {
+  #totalInitialInvestment;
+  #totalCurrentInvestment;
+  /* @ts-expect-error */
+  #table;
+  #lastUpdated;
 
+  #nameToIndex;
+
+  constructor() {
+    // TODO: open filstream for file, update initial and current investments from file, and update lastUpdated timestamp
+    this.#totalInitialInvestment = 0.0;
+    this.#totalCurrentInvestment = 0.0;
+    this.#table = null;
+    this.#nameToIndex = new Map();
+    this.#lastUpdated = 0;
+  }
+
+  /* @ts-expect-error */
+  async uploadCSV(file, callback) {
+    async function parse() {
+      return await new Promise((resolve, reject) => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            /* @ts-expect-error */
+            complete: (results) => {
+              resolve(results.data);
+            },
+          });
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+    parse().then((data) => {
+      this.processData(data);
+      callback();
+    });
+  }
+
+  /* @ts-expect-error */
+  processData(inCSV) {
+    var outTable: any[] = [];
+    var totalCurCost = 0.0;
+    var totalInitCost = 0.0;
+
+    for (var i = 0; i < inCSV.length; i++) {
+      var curRow = inCSV[i];
+      this.addNameToIndex(curRow.name, i);
+      totalInitCost += parseFloat(curRow.totalCost);
+      totalCurCost += (curRow.count * parseFloat(curRow.marketPrice)) / 1.15;
+      outTable = [
+        ...outTable,
+        [
+          curRow.name,
+          curRow.count,
+          curRow.totalCost,
+          curRow.marketPrice,
+          curRow.totalCost / curRow.count,
+          curRow.marketPrice / 1.15,
+          (curRow.marketPrice / 1.15 - curRow.totalCost / curRow.count) *
+            curRow.count,
+        ],
+      ];
+    }
+
+    this.#table = outTable;
+    this.#totalCurrentInvestment = totalCurCost;
+    this.#totalInitialInvestment = totalInitCost;
+
+    console.log(this.table);
+  }
+
+  exportCSV() {
+    const outTable = this.table.slice();
+
+    return (
+      this.table[0][0] +
+      "," +
+      /* @ts-expect-error */
+      outTable.map((v) => v.slice(0, 4).join(",")).join("\n")
+    );
+  }
+
+  /* @ts-expect-error */
+  addNameToIndex(name, index) {
+    this.#nameToIndex.set(name, index);
+  }
+
+  set table(value) {
+    this.#table = value;
+  }
+
+  get totalCurrentInvestment() {
+    return this.#totalCurrentInvestment;
+  }
+
+  get totalInitialInvestment() {
+    return this.#totalInitialInvestment;
+  }
+
+  get table() {
+    return this.#table;
+  }
+
+  getTotalProfit() {
+    return this.totalCurrentInvestment - this.totalInitialInvestment;
+  }
+
+  /* @ts-expect-error */
+  currentValueOf(itemName: string) {
+    // TODO: return market price of itemName
+    return 0.76;
+  }
+
+  /* @ts-expect-error */
+  initialValueOf(itemName: string) {
+    // TODO: return average purchase price of itemName
+    return 0.69;
+  }
+
+  profitOf(itemName: string) {
+    return this.currentValueOf(itemName) - this.initialValueOf(itemName);
+  }
+
+  addItem() {
+    // TODO: params
+    // TODO: Add a new item to the data sheet
+  }
+
+  /* @ts-expect-error */
+  marketPriceOf(itemName: string) {
+    // TODO: get current price of itemName
+  }
+
+  updateAllMarketPrices() {
+    // TODO: for every item in the data sheet, update item prices
+    if (Date.now() - this.#lastUpdated < 300000) {
+      return;
+    }
+  }
+
+  updateMarketPrice(itemName: string) {
+    var url =
+      "https://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=" +
+      itemName;
+    var xhr = new XMLHttpRequest();
+
+    xhr.open("GET", url, true);
+    xhr.responseType = "json";
+    xhr.onload = function () {
+      var status = xhr.status;
+      if (status === 200) {
+        alert("Your query count: " + xhr.response.query.count);
+      } else {
+        alert("Something went wrong: " + status);
+      }
+    };
+
+    if (xhr.status !== 200) {
+      return;
+    }
+
+    xhr.send();
+
+    const marketPrice = xhr.response.query.parse();
+    return marketPrice["median_price"];
+  }
+}
+
+var data = new investments();
+
+export default function App() {
   const [page, setPage] = useState("Home");
   const [initInvestment, setInitInvestment] = useState(
     data.totalInitialInvestment
@@ -108,9 +282,20 @@ export default function App() {
   }
 
   function OutputCSV() {
+    function exportData() {
+      const out = encodeURI("data:text/csv;charset=utf-8" + data.exportCSV());
+      var link = document.createElement("a");
+      link.setAttribute("href", out);
+      link.setAttribute("download", "output.csv");
+      document.body.appendChild(link); // Required for FF
+      link.click();
+    }
+
     return (
-      // TODO: create CSV file from CSV thing, allow user to download
-      <></>
+      <>
+        <Form.Label>Download Data</Form.Label>
+        <Button onClick={() => exportData()}>Download (.csv)</Button>
+      </>
     );
   }
 
@@ -208,6 +393,9 @@ export default function App() {
           <Stack gap={4}>
             <TitleContent />
             <Row>
+              <div>Import and export data here.</div>
+            </Row>
+            <Row>
               <InputCSV />
             </Row>
             <Row>
@@ -219,174 +407,5 @@ export default function App() {
     );
   } else {
     <div>Page not found. :/</div>;
-  }
-}
-
-class investments {
-  #totalInitialInvestment;
-  #totalCurrentInvestment;
-  /* @ts-expect-error */
-  #table;
-  #lastUpdated;
-
-  #nameToIndex;
-
-  constructor() {
-    // TODO: open filstream for file, update initial and current investments from file, and update lastUpdated timestamp
-    this.#totalInitialInvestment = 0.0;
-    this.#totalCurrentInvestment = 0.0;
-    this.#table = null;
-    this.#nameToIndex = new Map();
-    this.#lastUpdated = 0;
-  }
-
-  /* @ts-expect-error */
-  async uploadCSV(file, callback) {
-    async function parse() {
-      return await new Promise((resolve, reject) => {
-        try {
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            /* @ts-expect-error */
-            complete: (results) => {
-              resolve(results.data);
-            },
-          });
-        } catch (e) {
-          reject(e);
-        }
-      });
-    }
-    parse().then((data) => {
-      this.processData(data);
-      callback();
-    });
-  }
-
-  /* @ts-expect-error */
-  processData(inCSV) {
-    var outTable: any[] = [];
-    var totalCurCost = 0.0;
-    var totalInitCost = 0.0;
-
-    for (var i = 0; i < inCSV.length; i++) {
-      var curRow = inCSV[i];
-      this.addNameToIndex(curRow.name, i);
-      totalInitCost += parseFloat(curRow.totalCost);
-      totalCurCost += (curRow.count * parseFloat(curRow.marketPrice)) / 1.15;
-      outTable = [
-        ...outTable,
-        [
-          curRow.name,
-          curRow.count,
-          curRow.totalCost,
-          curRow.marketPrice,
-          curRow.totalCost / curRow.count,
-          curRow.marketPrice / 1.15,
-          (curRow.marketPrice / 1.15 - curRow.totalCost / curRow.count) *
-            curRow.count,
-        ],
-      ];
-    }
-
-    this.#table = outTable;
-    this.#totalCurrentInvestment = totalCurCost;
-    this.#totalInitialInvestment = totalInitCost;
-
-    console.log(this.table);
-  }
-
-  exportCSV() {
-    const outTable = this.table.slice(-4);
-    /* @ts-expect-error */
-    return outTable.map((v) => v.map((x) => `"${x}`).join(",")).join("\n");
-  }
-
-  /* @ts-expect-error */
-  addNameToIndex(name, index) {
-    this.#nameToIndex.set(name, index);
-  }
-
-  set table(value) {
-    this.#table = value;
-  }
-
-  get totalCurrentInvestment() {
-    return this.#totalCurrentInvestment;
-  }
-
-  get totalInitialInvestment() {
-    return this.#totalInitialInvestment;
-  }
-
-  get table() {
-    return this.#table;
-  }
-
-  getTotalProfit() {
-    return this.totalCurrentInvestment - this.totalInitialInvestment;
-  }
-
-  /* @ts-expect-error */
-  currentValueOf(itemName: string) {
-    // TODO: return market price of itemName
-    return 0.76;
-  }
-
-  /* @ts-expect-error */
-  initialValueOf(itemName: string) {
-    // TODO: return average purchase price of itemName
-    return 0.69;
-  }
-
-  profitOf(itemName: string) {
-    return this.currentValueOf(itemName) - this.initialValueOf(itemName);
-  }
-
-  addItem() {
-    // TODO: params
-    // TODO: Add a new item to the data sheet
-  }
-
-  /* @ts-expect-error */
-  marketPriceOf(itemName: string) {
-    // TODO: get current price of itemName
-  }
-
-  updateAllMarketPrices() {
-    // TODO: for every item in the data sheet, update item prices
-    if (Date.now() - this.#lastUpdated < 300000) {
-      return;
-    }
-  }
-
-  updateMarketPrice(itemName: string) {
-    var url =
-      "https://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=" +
-      itemName;
-    var xhr = new XMLHttpRequest();
-
-    xhr.open("GET", url, true);
-    xhr.responseType = "json";
-    xhr.onload = function () {
-      var status = xhr.status;
-      if (status === 200) {
-        alert("Your query count: " + xhr.response.query.count);
-      } else {
-        alert("Something went wrong: " + status);
-      }
-    };
-
-    if (xhr.status !== 200) {
-      return;
-    }
-
-    xhr.send();
-
-    const marketPrice = xhr.response.query.parse();
-    return marketPrice["median_price"];
   }
 }
