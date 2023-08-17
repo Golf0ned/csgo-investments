@@ -111,9 +111,12 @@ class investments {
     );
   }
 
-  /* @ts-expect-error */
-  addNameToIndex(name, index) {
+  addNameToIndex(name: string, index: number) {
     this.#nameToIndex.set(name, index);
+  }
+
+  getIndex(name: string) {
+    return this.#nameToIndex.get(name);
   }
 
   set table(value) {
@@ -213,7 +216,6 @@ export default function App() {
     setInitInvestment(data.totalInitialInvestment);
     setCurInvestment(data.totalCurrentInvestment);
     setTotalProfit(data.getTotalProfit());
-    console.log("final!");
   }
 
   function NavPane() {
@@ -245,6 +247,9 @@ export default function App() {
   }
 
   function InvestmentTable() {
+    if (data.table === null) {
+      return <div>No data imported.</div>;
+    }
     return (
       <Table hover>
         <thead>
@@ -256,8 +261,26 @@ export default function App() {
             <th>Total Profit</th>
           </tr>
         </thead>
+        <tbody>
+          <TableRows />
+        </tbody>
       </Table>
     );
+  }
+
+  function TableRows() {
+    /* @ts-expect-error */
+    return data.table.slice().map((row) => {
+      return (
+        <tr id={"row" + data.getIndex(row[0])}>
+          <td>{row[0]}</td>
+          <td>{row[1]}</td>
+          <td>{parseFloat(row[4]).toFixed(2)}</td>
+          <td>{parseFloat(row[3]).toFixed(2)}</td>
+          <td>{parseFloat(row[6]).toFixed(2)}</td>
+        </tr>
+      );
+    });
   }
 
   function handleNavClick(newPage: string) {
