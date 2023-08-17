@@ -5,22 +5,40 @@ import {
   Card,
   Col,
   Container,
+  Form,
   Nav,
   Navbar,
+  NavDropdown,
   Row,
   Stack,
   Table,
 } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 
+import Papa from "papaparse";
+
 import TitleContent from "./components/TitleContent";
 
 import "./App.css";
 
 export default function App() {
-  const [page, setPage] = useState("Home");
+  var data = new investments();
 
-  var data = new investments("data.csv");
+  const [page, setPage] = useState("Home");
+  const [initInvestment, setInitInvestment] = useState(
+    data.totalInitialInvestment
+  );
+  const [curInvestment, setCurInvestment] = useState(
+    data.totalCurrentInvestment
+  );
+  const [totalProfit, setTotalProfit] = useState(data.getTotalProfit());
+
+  function refreshAll() {
+    setInitInvestment(data.totalInitialInvestment);
+    setCurInvestment(data.totalCurrentInvestment);
+    setTotalProfit(data.getTotalProfit());
+    console.log("final!");
+  }
 
   function NavPane() {
     return (
@@ -31,12 +49,18 @@ export default function App() {
               CSGO Investments
             </Navbar.Brand>
             <Nav>
+              <Nav.Link onClick={() => handleNavClick("About")}>About</Nav.Link>
               <Nav.Link onClick={() => handleNavClick("Investments")}>
                 Investments
               </Nav.Link>
-              <Nav.Link onClick={() => handleNavClick("Add")}>
-                Add Items
-              </Nav.Link>
+              <NavDropdown align="end" title="Edit">
+                <NavDropdown.Item onClick={() => handleNavClick("Add")}>
+                  <div>Add Items</div>
+                </NavDropdown.Item>
+                <NavDropdown.Item onClick={() => handleNavClick("InOut")}>
+                  <div>Import/Export</div>
+                </NavDropdown.Item>
+              </NavDropdown>
             </Nav>
           </Container>
         </Navbar>
@@ -44,9 +68,51 @@ export default function App() {
     );
   }
 
+  function InvestmentTable() {
+    return (
+      <Table hover>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>#</th>
+            <th>Initial Price</th>
+            <th>Current Price</th>
+            <th>Total Profit</th>
+          </tr>
+        </thead>
+      </Table>
+    );
+  }
+
   function handleNavClick(newPage: string) {
     console.log("page now " + newPage);
     setPage(newPage);
+  }
+
+  function InputCSV() {
+    const changeHandler = (event) => {
+      data.uploadCSV(event.target.files[0], () => refreshAll());
+    };
+
+    return (
+      <Form>
+        <Form.Group controlId="Input">
+          <Form.Label>Upload Data (.csv)</Form.Label>
+          <Form.Control type="file" accept=".csv" onChange={changeHandler} />
+        </Form.Group>
+      </Form>
+    );
+  }
+
+  function OutputCSV() {
+    return (
+      // TODO: create CSV file from CSV thing, allow user to download
+      <></>
+    );
+  }
+
+  function AddItem() {
+    return <></>;
   }
 
   if (page === "Home") {
@@ -60,26 +126,44 @@ export default function App() {
               <Col>
                 <Card>
                   <Card.Header>Total Value</Card.Header>
-                  <Card.Body>${data.totalCurrentInvestment}</Card.Body>
+                  <Card.Body>${curInvestment.toFixed(2)}</Card.Body>
                 </Card>
               </Col>
               <Col>
                 <Card>
                   <Card.Header>Total Investment</Card.Header>
-                  <Card.Body>${data.totalinitialInvestment}</Card.Body>
+                  <Card.Body>${initInvestment.toFixed(2)}</Card.Body>
                 </Card>
               </Col>
               <Col>
                 <Card>
                   <Card.Header>Total Profit</Card.Header>
-                  <Card.Body>${data.getTotalProfit()}</Card.Body>
+                  <Card.Body>${totalProfit.toFixed(2)}</Card.Body>
                 </Card>
               </Col>
             </Row>
             <Row>
-              <Button variant="secondary" size="lg">
+              <Button
+                onClick={() => handleNavClick("Investments")}
+                variant="secondary"
+                size="lg"
+              >
                 See All Items
               </Button>
+            </Row>
+          </Stack>
+        </Container>
+      </>
+    );
+  } else if (page === "About") {
+    return (
+      <>
+        <NavPane />
+        <Container>
+          <Stack gap={4}>
+            <TitleContent />
+            <Row>
+              <div>About page. WIP.</div>
             </Row>
           </Stack>
         </Container>
@@ -93,9 +177,7 @@ export default function App() {
           <Stack gap={4}>
             <TitleContent />
             <Row>
-              <Table>
-                <h3>[Table placeholder]</h3>
-              </Table>
+              <InvestmentTable />
             </Row>
           </Stack>
         </Container>
@@ -109,9 +191,24 @@ export default function App() {
           <Stack gap={4}>
             <TitleContent />
             <Row>
-              <Table>
-                <h3>[Form to add item placeholder]</h3>
-              </Table>
+              <AddItem />
+            </Row>
+          </Stack>
+        </Container>
+      </>
+    );
+  } else if (page === "InOut") {
+    return (
+      <>
+        <NavPane />
+        <Container>
+          <Stack gap={4}>
+            <TitleContent />
+            <Row>
+              <InputCSV />
+            </Row>
+            <Row>
+              <OutputCSV />
             </Row>
           </Stack>
         </Container>
@@ -123,29 +220,103 @@ export default function App() {
 }
 
 class investments {
-  #totalinitialInvestment;
+  #totalInitialInvestment;
   #totalCurrentInvestment;
-  //#table;
+  #table;
   #lastUpdated;
 
-  constructor(filename: string) {
-    // TODO: open filstream for file, update initial and current investments from file, and update lastUpdated timestamp
-    this.#totalinitialInvestment = 50.0;
-    this.#totalCurrentInvestment = 67.83;
+  #nameToIndex;
 
+  constructor() {
+    // TODO: open filstream for file, update initial and current investments from file, and update lastUpdated timestamp
+    this.#totalInitialInvestment = 0.0;
+    this.#totalCurrentInvestment = 0.0;
+    this.#table = null;
+    this.#nameToIndex = new Map();
     this.#lastUpdated = 0;
+  }
+
+  async uploadCSV(file, callback) {
+    async function parse() {
+      return await new Promise((resolve, reject) => {
+        try {
+          Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+              resolve(results.data);
+            },
+          });
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+    parse().then((data) => {
+      this.processData(data);
+      callback();
+    });
+  }
+
+  processData(inCSV) {
+    var outTable = [];
+    var totalCurCost = 0.0;
+    var totalInitCost = 0.0;
+
+    for (var i = 0; i < inCSV.length; i++) {
+      var curRow = inCSV[i];
+      this.addNameToIndex(curRow.name, i);
+      totalInitCost += parseFloat(curRow.totalCost);
+      totalCurCost += (curRow.count * parseFloat(curRow.marketPrice)) / 1.15;
+      outTable = [
+        ...outTable,
+        [
+          curRow.name,
+          curRow.count,
+          curRow.totalCost,
+          curRow.marketPrice,
+          curRow.totalCost / curRow.count,
+          curRow.marketPrice / 1.15,
+          (curRow.marketPrice / 1.15 - curRow.totalCost / curRow.count) *
+            curRow.count,
+        ],
+      ];
+    }
+
+    this.#table = outTable;
+    this.#totalCurrentInvestment = totalCurCost;
+    this.#totalInitialInvestment = totalInitCost;
+
+    console.log(this.table);
+  }
+
+  exportCSV() {
+    const outTable = this.table.slice(-4);
+    return outTable.map((v) => v.map((x) => `"${x}`).join(",")).join("\n");
+  }
+
+  addNameToIndex(name, index) {
+    this.#nameToIndex.set(name, index);
+  }
+
+  set table(value) {
+    this.#table = value;
   }
 
   get totalCurrentInvestment() {
     return this.#totalCurrentInvestment;
   }
 
-  get totalinitialInvestment() {
-    return this.#totalinitialInvestment;
+  get totalInitialInvestment() {
+    return this.#totalInitialInvestment;
+  }
+
+  get table() {
+    return this.#table;
   }
 
   getTotalProfit() {
-    return this.totalCurrentInvestment - this.totalinitialInvestment;
+    return this.totalCurrentInvestment - this.totalInitialInvestment;
   }
 
   currentValueOf(itemName: string) {
