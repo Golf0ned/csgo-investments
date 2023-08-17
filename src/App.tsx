@@ -90,6 +90,7 @@ export default function App() {
   }
 
   function InputCSV() {
+    /* @ts-expect-error */
     const changeHandler = (event) => {
       data.uploadCSV(event.target.files[0], () => refreshAll());
     };
@@ -222,6 +223,7 @@ export default function App() {
 class investments {
   #totalInitialInvestment;
   #totalCurrentInvestment;
+  /* @ts-expect-error */
   #table;
   #lastUpdated;
 
@@ -236,6 +238,7 @@ class investments {
     this.#lastUpdated = 0;
   }
 
+  /* @ts-expect-error */
   async uploadCSV(file, callback) {
     async function parse() {
       return await new Promise((resolve, reject) => {
@@ -243,6 +246,7 @@ class investments {
           Papa.parse(file, {
             header: true,
             skipEmptyLines: true,
+            /* @ts-expect-error */
             complete: (results) => {
               resolve(results.data);
             },
@@ -258,8 +262,9 @@ class investments {
     });
   }
 
+  /* @ts-expect-error */
   processData(inCSV) {
-    var outTable = [];
+    var outTable: any[] = [];
     var totalCurCost = 0.0;
     var totalInitCost = 0.0;
 
@@ -292,9 +297,11 @@ class investments {
 
   exportCSV() {
     const outTable = this.table.slice(-4);
+    /* @ts-expect-error */
     return outTable.map((v) => v.map((x) => `"${x}`).join(",")).join("\n");
   }
 
+  /* @ts-expect-error */
   addNameToIndex(name, index) {
     this.#nameToIndex.set(name, index);
   }
