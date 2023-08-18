@@ -15,6 +15,15 @@ import {
 } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 
+/* 
+Todo:
+- update front matter values on add/remove item (initial investment)
+- make adding new items work (async hell lol)
+- update profit column on remove
+
+- add non-plugin server functionality
+*/
+
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import Papa from "papaparse";
@@ -31,14 +40,15 @@ class investments {
   #totalInitialInvestment;
   #totalCurrentInvestment;
   #table;
+  //@ts-ignore
   #nameToIndex;
 
   constructor() {
     // TODO: open filstream for file, update initial and current investments from file, and update lastUpdated timestamp
     this.#totalInitialInvestment = 0.0;
     this.#totalCurrentInvestment = 0.0;
-    this.#table = [["this", "array", "is", "empty", 0.0, 0.0, 0.0]];
-    this.#nameToIndex = new Map();
+    this.#table = [["please", "enter", "some", "data", 0.0, 0.0, 0.0]];
+    this.#nameToIndex = [];
   }
 
   /* @ts-expect-error */
@@ -75,7 +85,7 @@ class investments {
 
     for (var i = 0; i < inCSV.length; i++) {
       var curRow = inCSV[i];
-      this.addNameToIndex(curRow.name, i);
+      this.addNameToIndex(curRow.name);
       totalInitCost += parseFloat(curRow.totalCost);
       totalCurCost += curRow.count * parseFloat(curRow.marketPrice);
       outTable = [
@@ -109,12 +119,12 @@ class investments {
     );
   }
 
-  addNameToIndex(name: string, index: number) {
-    this.#nameToIndex.set(name, index);
+  addNameToIndex(name: string) {
+    this.#nameToIndex.push(name);
   }
 
   getIndex(name: string) {
-    return this.#nameToIndex.get(name);
+    return this.#nameToIndex.indexOf(name);
   }
 
   set table(value) {
@@ -137,31 +147,104 @@ class investments {
     return this.totalCurrentInvestment / 1.15 - this.totalInitialInvestment;
   }
 
-  /* @ts-expect-error */
-  currentValueOf(itemName: string) {
-    // TODO: return market price of itemName
-    return 0.76;
+  addItem(itemName: string, count: number, price: number) {
+    var index = this.getIndex(itemName);
+    if (index != -1) {
+      this.#table[index][1] = parseInt(this.#table[index][1] as string) + count;
+      this.#table[index][2] =
+        parseInt(this.#table[index][2] as string) + price * count;
+      this.#table[index][4] =
+        parseFloat(this.#table[index][2] as string) /
+        parseInt(this.#table[index][1] as string);
+      this.#table[index][6] =
+        (parseFloat(this.#table[index][5] as string) -
+          parseFloat(this.#table[index][4] as string)) *
+        parseInt(this.#table[index][1] as string);
+      return "success";
+    }
+    var marketPrice = "0.00";
+
+    this.getMarketPrice(itemName, (value: string) => {
+      // TODO: Figure out waiting for this ******************************************************
+      marketPrice = value;
+    });
+
+    if (marketPrice === "false") {
+      return "Invalid item name: make sure it's identical to the name on the Steam market.";
+    }
+
+    if (
+      this.table.toString() ===
+      [["please", "enter", "some", "data", 0.0, 0.0, 0.0]].toString()
+    ) {
+      this.#table = [
+        [
+          itemName,
+          count as unknown as string,
+          (price * count) as unknown as string,
+          marketPrice,
+          price,
+          parseFloat(marketPrice) / 1.15,
+          (parseFloat(marketPrice) / 1.15 - price) * count,
+        ],
+      ];
+      return "success";
+    }
+
+    this.#table.push([
+      itemName,
+      count as unknown as string,
+      (price * count) as unknown as string,
+      marketPrice,
+      price,
+      parseFloat(marketPrice) / 1.15,
+      (parseFloat(marketPrice) / 1.15 - price) * count,
+    ]);
   }
 
-  /* @ts-expect-error */
-  initialValueOf(itemName: string) {
-    // TODO: return average purchase price of itemName
-    return 0.69;
-  }
-
-  profitOf(itemName: string) {
-    return this.currentValueOf(itemName) / 1.15 - this.initialValueOf(itemName);
-  }
-
-  addItem() {
-    // TODO: params
-    // TODO: Add a new item to the data sheet
+  removeItem(itemName: string, count: number) {
+    var index = this.getIndex(itemName);
+    if (index === -1) {
+      return "You don't own any of \"" + itemName + '".';
+    }
+    if (parseInt(this.#table[index][1] as string) - count < 0) {
+      return (
+        "Can't remove " +
+        count +
+        " items when you own " +
+        parseInt(this.#table[index][1] as string) +
+        "."
+      );
+    } else if (parseInt(this.#table[index][1] as string) - count == 0) {
+      this.#table.splice(index, 1);
+      this.#nameToIndex.splice(index, 1);
+      return "success";
+    } else {
+      this.#table[index][1] = (
+        parseInt(this.#table[index][1] as string) - count
+      ).toString();
+      this.#table[index][2] = (
+        parseFloat(this.#table[index][4] as string) *
+        parseInt(this.#table[index][1] as string)
+      ).toFixed(2);
+      this.#table[index][6] =
+        (parseFloat(this.#table[index][5] as string) -
+          parseFloat(this.#table[index][6] as string)) *
+        parseInt(this.#table[index][1] as string);
+      return "success";
+    }
   }
 
   updateAllMarketPrices() {
-    var cur = 0;
     for (var i = 0; i < this.#table.length; i++) {
       this.setMarketPrice(this.#table[i][0] as string);
+      console.log("First: [" + i + "]" + this.#table[i][3]);
+    }
+  }
+
+  updateCurrentInvestment() {
+    var cur = 0;
+    for (var i = 0; i < this.#table.length; i++) {
       cur +=
         parseFloat(this.#table[i][3] as string) *
         parseInt(this.#table[i][1] as string);
@@ -169,31 +252,21 @@ class investments {
     this.#totalCurrentInvestment = cur;
   }
 
-  setMarketPrice(itemName: string) {
-    var url;
-    var DIRECTFROMSTEAM = true;
-
-    if (DIRECTFROMSTEAM) {
-      url =
-        "https://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=" +
-        itemName;
-    } else {
-      url =
-        "https://api.steamapis.com/steam/inventory/76561198296276976/440/" +
-        itemName +
-        "?api_key=czUVxdNw1yLgZ1VrOUzRj8wlds0";
-    }
+  getMarketPrice(itemName: string, callback: Function) {
+    var url =
+      "https://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=" +
+      itemName;
 
     jQuery.getJSON(url, (data) => {
-      console.log("worked!");
-      var price;
-
-      if (DIRECTFROMSTEAM) {
-        price = data["median_price"].slice(1);
-      } else {
-        price = data["median_avg_prices_15days"][0];
+      if ((data[0] = false)) {
+        callback("false");
       }
+      return callback(data["median_price"].slice(1));
+    });
+  }
 
+  setMarketPrice(itemName: string) {
+    this.getMarketPrice(itemName, (price: string) => {
       this.table[this.getIndex(itemName)][3] = price;
       this.table[this.getIndex(itemName)][5] = parseFloat(price) / 1.15;
       this.table[this.getIndex(itemName)][6] =
@@ -217,6 +290,7 @@ export default function App() {
   const [totalProfit, setTotalProfit] = useState(data.getTotalProfit());
 
   function refreshAll() {
+    data.updateCurrentInvestment();
     setInitInvestment(data.totalInitialInvestment);
     setCurInvestment(data.totalCurrentInvestment);
     setTotalProfit(data.getTotalProfit());
@@ -225,7 +299,7 @@ export default function App() {
   function NavPane() {
     return (
       <>
-        <Navbar expand="md" fixed="top">
+        <Navbar expand="md">
           <Container>
             <Navbar.Brand
               onClick={() => {
@@ -263,7 +337,7 @@ export default function App() {
   function InvestmentTable() {
     if (
       data.table.toString() ===
-      [["this", "array", "is", "empty", 0.0, 0.0, 0.0]].toString()
+      [["please", "enter", "some", "data", 0.0, 0.0, 0.0]].toString()
     ) {
       return (
         <Stack gap={3}>
@@ -390,7 +464,141 @@ export default function App() {
   }
 
   function AddItem() {
-    return <></>;
+    const [formName, setFormName] = useState("name");
+    const [formCount, setFormCount] = useState(0);
+    const [formPrice, setFormPrice] = useState(0.0);
+
+    function handleAddItem(name: string, count: number, price: number) {
+      var success = data.addItem(name, count, price);
+      console.log(success);
+    }
+
+    return (
+      <>
+        <div style={{ marginBottom: "0.4em" }}>Add Items</div>
+        <Form
+          style={{ maxWidth: "85%", margin: "auto" }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleAddItem(formName, formCount, formPrice);
+          }}
+        >
+          <Stack gap={3}>
+            <Row>
+              <Form.Group>
+                <Form.Control
+                  name="name"
+                  type="string"
+                  onChange={(e) => {
+                    e.preventDefault();
+                    setFormName(e.target.value);
+                  }}
+                  placeholder="Item Name (Paste from Steam)"
+                />
+              </Form.Group>
+            </Row>
+            <Row>
+              <Col>
+                <Form.Group>
+                  <Form.Control
+                    name="count"
+                    type="number"
+                    onChange={(e) => {
+                      e.preventDefault();
+                      setFormCount(parseInt(e.target.value));
+                    }}
+                    placeholder="Count"
+                  />
+                </Form.Group>
+              </Col>
+              <Col>
+                <Form.Group>
+                  <Form.Control
+                    name="price"
+                    type="decimal"
+                    onChange={(e) => {
+                      e.preventDefault();
+                      setFormPrice(parseFloat(e.target.value));
+                    }}
+                    placeholder="Purchase Price ($)"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Button
+                style={{ maxWidth: "96%", margin: "auto" }}
+                variant="secondary"
+                type="submit"
+              >
+                Submit
+              </Button>
+            </Row>
+          </Stack>
+        </Form>
+      </>
+    );
+  }
+
+  function RemoveItem() {
+    const [formName, setFormName] = useState("name");
+    const [formCount, setFormCount] = useState(0);
+
+    function handleRemoveItem(name: string, count: number) {
+      var success = data.removeItem(name, count);
+      console.log(success);
+    }
+
+    return (
+      <>
+        <div style={{ marginBottom: "0.4em" }}>Remove Items</div>
+        <Form
+          style={{ maxWidth: "85%", margin: "auto" }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleRemoveItem(formName, formCount);
+          }}
+        >
+          <Stack gap={3}>
+            <Row>
+              <Form.Group>
+                <Form.Control
+                  name="name"
+                  type="string"
+                  onChange={(e) => {
+                    e.preventDefault();
+                    setFormName(e.target.value);
+                  }}
+                  placeholder="Item Name (Paste from Steam)"
+                />
+              </Form.Group>
+            </Row>
+            <Row>
+              <Form.Group>
+                <Form.Control
+                  name="count"
+                  type="number"
+                  onChange={(e) => {
+                    e.preventDefault();
+                    setFormCount(parseInt(e.target.value));
+                  }}
+                  placeholder="Count"
+                />
+              </Form.Group>
+            </Row>
+            <Row>
+              <Button
+                style={{ maxWidth: "96%", margin: "auto" }}
+                variant="secondary"
+                type="submit"
+              >
+                Submit
+              </Button>
+            </Row>
+          </Stack>
+        </Form>
+      </>
+    );
   }
 
   if (page === "Home") {
@@ -470,7 +678,15 @@ export default function App() {
           <Stack gap={4}>
             <TitleContent />
             <Row>
-              <AddItem />
+              <div>Add or remove items here.</div>
+            </Row>
+            <Row>
+              <Col>
+                <AddItem />
+              </Col>
+              <Col>
+                <RemoveItem />
+              </Col>
             </Row>
           </Stack>
         </Container>
