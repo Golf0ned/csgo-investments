@@ -26,7 +26,6 @@ import "./App.css";
 class investments {
   #totalInitialInvestment;
   #totalCurrentInvestment;
-  /* @ts-expect-error */
   #table;
   #lastUpdated;
 
@@ -36,7 +35,7 @@ class investments {
     // TODO: open filstream for file, update initial and current investments from file, and update lastUpdated timestamp
     this.#totalInitialInvestment = 0.0;
     this.#totalCurrentInvestment = 0.0;
-    this.#table = null;
+    this.#table = [["this", "array", "is", "empty", 0.0, 0.0, 0.0]];
     this.#nameToIndex = new Map();
     this.#lastUpdated = 0;
   }
@@ -106,7 +105,6 @@ class investments {
     return (
       this.table[0][0] +
       "," +
-      /* @ts-expect-error */
       outTable.map((v) => v.slice(0, 4).join(",")).join("\n")
     );
   }
@@ -221,7 +219,7 @@ export default function App() {
   function NavPane() {
     return (
       <>
-        <Navbar expand="lg" fixed="top">
+        <Navbar expand="md" fixed="top">
           <Container>
             <Navbar.Brand onClick={() => handleNavClick("Home")}>
               CSGO Investments
@@ -232,8 +230,8 @@ export default function App() {
                 Investments
               </Nav.Link>
               <NavDropdown align="end" title="Edit">
-                <NavDropdown.Item onClick={() => handleNavClick("Add")}>
-                  <div>Add Items</div>
+                <NavDropdown.Item onClick={() => handleNavClick("Modify")}>
+                  <div>Add/Remove Items</div>
                 </NavDropdown.Item>
                 <NavDropdown.Item onClick={() => handleNavClick("InOut")}>
                   <div>Import/Export</div>
@@ -247,8 +245,36 @@ export default function App() {
   }
 
   function InvestmentTable() {
-    if (data.table === null) {
-      return <div>No data imported.</div>;
+    if (
+      data.table.toString() ===
+      [["this", "array", "is", "empty", 0.0, 0.0, 0.0]].toString()
+    ) {
+      return (
+        <Stack gap={3}>
+          <div>Nothing found. :(</div>
+          <div>Add items or import an existing list:</div>
+          <Row style={{ width: "80%", margin: "auto" }}>
+            <Col>
+              <Button
+                style={{ width: "80%" }}
+                variant="secondary"
+                onClick={() => handleNavClick("Modify")}
+              >
+                Add items
+              </Button>
+            </Col>
+            <Col>
+              <Button
+                style={{ width: "80%" }}
+                variant="secondary"
+                onClick={() => handleNavClick("InOut")}
+              >
+                Import from file
+              </Button>
+            </Col>
+          </Row>
+        </Stack>
+      );
     }
     return (
       <Table hover>
@@ -269,17 +295,22 @@ export default function App() {
   }
 
   function TableRows() {
-    /* @ts-expect-error */
     return data.table.slice().map((row) => {
-      return (
-        <tr id={"row" + data.getIndex(row[0])}>
-          <td>{row[0]}</td>
-          <td>{row[1]}</td>
-          <td>{parseFloat(row[4]).toFixed(2)}</td>
-          <td>{parseFloat(row[3]).toFixed(2)}</td>
-          <td>{parseFloat(row[6]).toFixed(2)}</td>
-        </tr>
-      );
+      if (
+        typeof row[3] === "string" &&
+        typeof row[4] === "number" &&
+        typeof row[6] === "number"
+      ) {
+        return (
+          <tr key={"row" + data.getIndex(row[0] as string)}>
+            <td>{row[0]}</td>
+            <td>{row[1]}</td>
+            <td>{row[4].toFixed(2)}</td>
+            <td>{parseFloat(row[3]).toFixed(2)}</td>
+            <td>{row[6].toFixed(2)}</td>
+          </tr>
+        );
+      }
     });
   }
 
@@ -316,8 +347,14 @@ export default function App() {
 
     return (
       <>
-        <Form.Label>Download Data</Form.Label>
-        <Button onClick={() => exportData()}>Download (.csv)</Button>
+        <div>Download Data</div>
+        <Button
+          style={{ marginTop: "0.4em", width: "100%" }}
+          variant="secondary"
+          onClick={() => exportData()}
+        >
+          Download (.csv)
+        </Button>
       </>
     );
   }
@@ -355,6 +392,7 @@ export default function App() {
             </Row>
             <Row>
               <Button
+                style={{ width: "50%", margin: "auto" }}
                 onClick={() => handleNavClick("Investments")}
                 variant="secondary"
                 size="lg"
@@ -394,7 +432,7 @@ export default function App() {
         </Container>
       </>
     );
-  } else if (page === "Add") {
+  } else if (page === "Modify") {
     return (
       <>
         <NavPane />
@@ -418,11 +456,13 @@ export default function App() {
             <Row>
               <div>Import and export data here.</div>
             </Row>
-            <Row>
-              <InputCSV />
-            </Row>
-            <Row>
-              <OutputCSV />
+            <Row style={{ width: "80%", margin: "auto" }}>
+              <Col>
+                <InputCSV />
+              </Col>
+              <Col>
+                <OutputCSV />
+              </Col>
             </Row>
           </Stack>
         </Container>
