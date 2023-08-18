@@ -27,8 +27,6 @@ class investments {
   #totalInitialInvestment;
   #totalCurrentInvestment;
   #table;
-  #lastUpdated;
-
   #nameToIndex;
 
   constructor() {
@@ -37,7 +35,6 @@ class investments {
     this.#totalCurrentInvestment = 0.0;
     this.#table = [["this", "array", "is", "empty", 0.0, 0.0, 0.0]];
     this.#nameToIndex = new Map();
-    this.#lastUpdated = 0;
   }
 
   /* @ts-expect-error */
@@ -103,8 +100,7 @@ class investments {
     const outTable = this.table.slice();
 
     return (
-      this.table[0][0] +
-      "," +
+      ",name,count,totalCost,marketPrice\n" +
       outTable.map((v) => v.slice(0, 4).join(",")).join("\n")
     );
   }
@@ -158,43 +154,51 @@ class investments {
     // TODO: Add a new item to the data sheet
   }
 
-  /* @ts-expect-error */
-  marketPriceOf(itemName: string) {
-    // TODO: get current price of itemName
-  }
-
   updateAllMarketPrices() {
     // TODO: for every item in the data sheet, update item prices
-    if (Date.now() - this.#lastUpdated < 300000) {
-      return;
+    for (var i = 0; i < this.#table.length; i++) {
+      this.setMarketPrice(this.#table[i][0] as string);
     }
   }
 
-  updateMarketPrice(itemName: string) {
+  async setMarketPrice(itemName: string) {
     var url =
       "https://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=" +
       itemName;
+
     var xhr = new XMLHttpRequest();
 
     xhr.open("GET", url, true);
     xhr.responseType = "json";
+    console.log("1");
     xhr.onload = function () {
       var status = xhr.status;
       if (status === 200) {
+        console.log("it worked (2)");
         alert("Your query count: " + xhr.response.query.count);
       } else {
+        console.log("it failed (2)");
         alert("Something went wrong: " + status);
       }
     };
 
-    if (xhr.status !== 200) {
-      return;
-    }
+    console.log(xhr.status);
+    // if (xhr.status !== 200) {
+    //   return;
+    // }
 
     xhr.send();
 
+    console.log("3");
     const marketPrice = xhr.response.query.parse();
-    return marketPrice["median_price"];
+
+    this.table[this.getIndex(itemName)][3] =
+      marketPrice["median_price"].toFixed(2);
+    this.table[this.getIndex(itemName)][5] = marketPrice["median_price"] / 1.15;
+    this.table[this.getIndex(itemName)][6] =
+      (marketPrice["median_price"] / 1.15 -
+        parseFloat(this.table[this.getIndex(itemName)][4] as string)) *
+      parseInt(this.table[this.getIndex(itemName)][1] as string);
   }
 }
 
@@ -277,20 +281,35 @@ export default function App() {
       );
     }
     return (
-      <Table hover>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>#</th>
-            <th>Initial Price</th>
-            <th>Current Price</th>
-            <th>Total Profit</th>
-          </tr>
-        </thead>
-        <tbody>
-          <TableRows />
-        </tbody>
-      </Table>
+      <>
+        <Container>
+          <Button
+            onClick={() => {
+              data.updateAllMarketPrices();
+              refreshAll();
+            }}
+            variant="secondary"
+            style={{ float: "right" }}
+          >
+            Update Steam Prices
+          </Button>
+        </Container>
+
+        <Table hover>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>#</th>
+              <th>Initial Price</th>
+              <th>Current Price</th>
+              <th>Total Profit (w/ Market Fees)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <TableRows />
+          </tbody>
+        </Table>
+      </>
     );
   }
 
@@ -305,9 +324,9 @@ export default function App() {
           <tr key={"row" + data.getIndex(row[0] as string)}>
             <td>{row[0]}</td>
             <td>{row[1]}</td>
-            <td>{row[4].toFixed(2)}</td>
-            <td>{parseFloat(row[3]).toFixed(2)}</td>
-            <td>{row[6].toFixed(2)}</td>
+            <td>${row[4].toFixed(2)}</td>
+            <td>${parseFloat(row[3]).toFixed(2)}</td>
+            <td>${row[6].toFixed(2)}</td>
           </tr>
         );
       }
