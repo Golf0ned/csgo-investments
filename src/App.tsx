@@ -23,6 +23,10 @@ import TitleContent from "./components/TitleContent";
 
 import "./App.css";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import jQuery from "jquery";
+
 class investments {
   #totalInitialInvestment;
   #totalCurrentInvestment;
@@ -155,50 +159,48 @@ class investments {
   }
 
   updateAllMarketPrices() {
-    // TODO: for every item in the data sheet, update item prices
+    var cur = 0;
     for (var i = 0; i < this.#table.length; i++) {
       this.setMarketPrice(this.#table[i][0] as string);
+      cur +=
+        parseFloat(this.#table[i][3] as string) *
+        parseInt(this.#table[i][1] as string);
     }
+    this.#totalCurrentInvestment = cur;
   }
 
-  async setMarketPrice(itemName: string) {
-    var url =
-      "https://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=" +
-      itemName;
+  setMarketPrice(itemName: string) {
+    var url;
+    var DIRECTFROMSTEAM = true;
 
-    var xhr = new XMLHttpRequest();
+    if (DIRECTFROMSTEAM) {
+      url =
+        "https://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=" +
+        itemName;
+    } else {
+      url =
+        "https://api.steamapis.com/steam/inventory/76561198296276976/440/" +
+        itemName +
+        "?api_key=czUVxdNw1yLgZ1VrOUzRj8wlds0";
+    }
 
-    xhr.open("GET", url, true);
-    xhr.responseType = "json";
-    console.log("1");
-    xhr.onload = function () {
-      var status = xhr.status;
-      if (status === 200) {
-        console.log("it worked (2)");
-        alert("Your query count: " + xhr.response.query.count);
+    jQuery.getJSON(url, (data) => {
+      console.log("worked!");
+      var price;
+
+      if (DIRECTFROMSTEAM) {
+        price = data["median_price"].slice(1);
       } else {
-        console.log("it failed (2)");
-        alert("Something went wrong: " + status);
+        price = data["median_avg_prices_15days"][0];
       }
-    };
 
-    console.log(xhr.status);
-    // if (xhr.status !== 200) {
-    //   return;
-    // }
-
-    xhr.send();
-
-    console.log("3");
-    const marketPrice = xhr.response.query.parse();
-
-    this.table[this.getIndex(itemName)][3] =
-      marketPrice["median_price"].toFixed(2);
-    this.table[this.getIndex(itemName)][5] = marketPrice["median_price"] / 1.15;
-    this.table[this.getIndex(itemName)][6] =
-      (marketPrice["median_price"] / 1.15 -
-        parseFloat(this.table[this.getIndex(itemName)][4] as string)) *
-      parseInt(this.table[this.getIndex(itemName)][1] as string);
+      this.table[this.getIndex(itemName)][3] = price;
+      this.table[this.getIndex(itemName)][5] = parseFloat(price) / 1.15;
+      this.table[this.getIndex(itemName)][6] =
+        (parseFloat(price) / 1.15 -
+          parseFloat(this.table[this.getIndex(itemName)][4] as string)) *
+        parseInt(this.table[this.getIndex(itemName)][1] as string);
+    });
   }
 }
 
