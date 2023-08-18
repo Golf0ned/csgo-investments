@@ -77,7 +77,7 @@ class investments {
       var curRow = inCSV[i];
       this.addNameToIndex(curRow.name, i);
       totalInitCost += parseFloat(curRow.totalCost);
-      totalCurCost += (curRow.count * parseFloat(curRow.marketPrice)) / 1.15;
+      totalCurCost += curRow.count * parseFloat(curRow.marketPrice);
       outTable = [
         ...outTable,
         [
@@ -134,7 +134,7 @@ class investments {
   }
 
   getTotalProfit() {
-    return this.totalCurrentInvestment - this.totalInitialInvestment;
+    return this.totalCurrentInvestment / 1.15 - this.totalInitialInvestment;
   }
 
   /* @ts-expect-error */
@@ -150,7 +150,7 @@ class investments {
   }
 
   profitOf(itemName: string) {
-    return this.currentValueOf(itemName) - this.initialValueOf(itemName);
+    return this.currentValueOf(itemName) / 1.15 - this.initialValueOf(itemName);
   }
 
   addItem() {
@@ -227,12 +227,22 @@ export default function App() {
       <>
         <Navbar expand="md" fixed="top">
           <Container>
-            <Navbar.Brand onClick={() => handleNavClick("Home")}>
+            <Navbar.Brand
+              onClick={() => {
+                refreshAll();
+                handleNavClick("Home");
+              }}
+            >
               CSGO Investments
             </Navbar.Brand>
             <Nav>
               <Nav.Link onClick={() => handleNavClick("About")}>About</Nav.Link>
-              <Nav.Link onClick={() => handleNavClick("Investments")}>
+              <Nav.Link
+                onClick={() => {
+                  refreshAll();
+                  handleNavClick("Investments");
+                }}
+              >
                 Investments
               </Nav.Link>
               <NavDropdown align="end" title="Edit">
@@ -288,7 +298,6 @@ export default function App() {
           <Button
             onClick={() => {
               data.updateAllMarketPrices();
-              refreshAll();
             }}
             variant="secondary"
             style={{ float: "right" }}
@@ -304,7 +313,7 @@ export default function App() {
               <th>#</th>
               <th>Initial Price</th>
               <th>Current Price</th>
-              <th>Total Profit (w/ Market Fees)</th>
+              <th>Profit (w/ Market Fees)</th>
             </tr>
           </thead>
           <tbody>
@@ -394,19 +403,19 @@ export default function App() {
             <Row>
               <Col>
                 <Card>
-                  <Card.Header>Total Value</Card.Header>
+                  <Card.Header>Current Value</Card.Header>
                   <Card.Body>${curInvestment.toFixed(2)}</Card.Body>
                 </Card>
               </Col>
               <Col>
                 <Card>
-                  <Card.Header>Total Investment</Card.Header>
+                  <Card.Header>Initial Investment</Card.Header>
                   <Card.Body>${initInvestment.toFixed(2)}</Card.Body>
                 </Card>
               </Col>
               <Col>
                 <Card>
-                  <Card.Header>Total Profit</Card.Header>
+                  <Card.Header>Total Profit (w/ Market Fees)</Card.Header>
                   <Card.Body>${totalProfit.toFixed(2)}</Card.Body>
                 </Card>
               </Col>
