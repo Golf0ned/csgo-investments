@@ -196,7 +196,6 @@ class investments {
         ]);
       }
       this.#nameToIndex.push(itemName);
-      this.#totalInitialInvestment += price * count;
       return "success";
     });
   }
