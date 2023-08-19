@@ -655,7 +655,25 @@ export default function App() {
           <Stack gap={4}>
             <TitleContent />
             <Row>
-              <div>About page. WIP.</div>
+              <div style={{ marginBottom: "1em" }}>
+                I built this website since I was bored of checking steam market
+                prices manually and updating a spreadsheet.
+              </div>
+              <div style={{ marginBottom: "1em" }}>
+                Current functionality requires the Allow CORS plugin from Chrome
+                (
+                <a href="https://chrome.google.com/webstore/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf">
+                  available here
+                </a>
+                ), since I currently have no plan for building a CORS proxy.
+              </div>
+              <div style={{ marginBottom: "1em" }}>
+                This project was built in React using Vite. It utilizes React
+                Bootstrap fairly heavily to look pretty. The website refreshes
+                from a steam market price endpoint, but long-term support would
+                require a proper API (which I currently do not have the budget
+                for).
+              </div>
             </Row>
           </Stack>
         </Container>
