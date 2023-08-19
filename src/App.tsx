@@ -17,8 +17,6 @@ import "bootstrap/dist/css/bootstrap.min.css";
 
 /* 
 Todo:
-- make adding new items work (async hell lol)
-
 - add non-plugin server functionality
 */
 
@@ -167,18 +165,27 @@ class investments {
     this.getMarketPrice(itemName, (value: string) => {
       // TODO: Figure out waiting for this ******************************************************
       marketPrice = value;
-    });
+      if (marketPrice === "false") {
+        return "Invalid item name: make sure it's identical to the name on the Steam market.";
+      }
 
-    if (marketPrice === "false") {
-      return "Invalid item name: make sure it's identical to the name on the Steam market.";
-    }
-
-    if (
-      this.table.toString() ===
-      [["please", "enter", "some", "data", 0.0, 0.0, 0.0]].toString()
-    ) {
-      this.#table = [
-        [
+      if (
+        this.table.toString() ===
+        [["please", "enter", "some", "data", 0.0, 0.0, 0.0]].toString()
+      ) {
+        this.#table = [
+          [
+            itemName,
+            count as unknown as string,
+            (price * count) as unknown as string,
+            marketPrice,
+            price,
+            parseFloat(marketPrice) / 1.15,
+            (parseFloat(marketPrice) / 1.15 - price) * count,
+          ],
+        ];
+      } else {
+        this.#table.push([
           itemName,
           count as unknown as string,
           (price * count) as unknown as string,
@@ -186,20 +193,12 @@ class investments {
           price,
           parseFloat(marketPrice) / 1.15,
           (parseFloat(marketPrice) / 1.15 - price) * count,
-        ],
-      ];
+        ]);
+      }
+      this.#nameToIndex.push(itemName);
+      this.#totalInitialInvestment += price * count;
       return "success";
-    }
-
-    this.#table.push([
-      itemName,
-      count as unknown as string,
-      (price * count) as unknown as string,
-      marketPrice,
-      price,
-      parseFloat(marketPrice) / 1.15,
-      (parseFloat(marketPrice) / 1.15 - price) * count,
-    ]);
+    });
   }
 
   removeItem(itemName: string, count: number) {
@@ -256,9 +255,11 @@ class investments {
   }
 
   getMarketPrice(itemName: string, callback: Function) {
+    var urlItemName = itemName.replace("&", "%26").replace(":", "%3A");
+
     var url =
       "https://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=" +
-      itemName;
+      urlItemName;
 
     jQuery.getJSON(url, (data) => {
       if ((data[0] = false)) {
@@ -388,8 +389,8 @@ export default function App() {
             <tr>
               <th>Name</th>
               <th>#</th>
-              <th>Initial Price</th>
-              <th>Current Price</th>
+              <th>Invested Unit Price</th>
+              <th>Current Unit Price</th>
               <th>Profit (w/ Market Fees)</th>
             </tr>
           </thead>
@@ -518,12 +519,13 @@ export default function App() {
                 <Form.Group>
                   <Form.Control
                     name="price"
-                    type="decimal"
+                    type="number"
+                    step="0.01"
                     onChange={(e) => {
                       e.preventDefault();
                       setFormPrice(parseFloat(e.target.value));
                     }}
-                    placeholder="Purchase Price ($)"
+                    placeholder="Purchase Unit Price ($)"
                   />
                 </Form.Group>
               </Col>
