@@ -17,9 +17,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 
 /* 
 Todo:
-- update front matter values on add/remove item (initial investment)
 - make adding new items work (async hell lol)
-- update profit column on remove
 
 - add non-plugin server functionality
 */
@@ -160,10 +158,12 @@ class investments {
         (parseFloat(this.#table[index][5] as string) -
           parseFloat(this.#table[index][4] as string)) *
         parseInt(this.#table[index][1] as string);
+      this.#totalInitialInvestment += price * count;
       return "success";
     }
-    var marketPrice = "0.00";
 
+    this.#totalInitialInvestment += price * count;
+    var marketPrice = "0.01";
     this.getMarketPrice(itemName, (value: string) => {
       // TODO: Figure out waiting for this ******************************************************
       marketPrice = value;
@@ -216,6 +216,7 @@ class investments {
         "."
       );
     } else if (parseInt(this.#table[index][1] as string) - count == 0) {
+      this.#totalInitialInvestment -= parseInt(this.#table[index][2] as string);
       this.#table.splice(index, 1);
       this.#nameToIndex.splice(index, 1);
       return "success";
@@ -223,13 +224,15 @@ class investments {
       this.#table[index][1] = (
         parseInt(this.#table[index][1] as string) - count
       ).toString();
+      this.#totalInitialInvestment -=
+        parseFloat(this.#table[index][4] as string) * count;
       this.#table[index][2] = (
         parseFloat(this.#table[index][4] as string) *
         parseInt(this.#table[index][1] as string)
       ).toFixed(2);
       this.#table[index][6] =
         (parseFloat(this.#table[index][5] as string) -
-          parseFloat(this.#table[index][6] as string)) *
+          parseFloat(this.#table[index][4] as string)) *
         parseInt(this.#table[index][1] as string);
       return "success";
     }
