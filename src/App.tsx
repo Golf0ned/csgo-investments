@@ -130,7 +130,6 @@ class investments {
       return "SUCCESS: Updated values for \"" + itemName + "\"";
     }
 
-
     let marketPrice = "0.01";
     investments.getMarketPrice(itemName, (value: string) => {
       // TODO: Figure out waiting for this ******************************************************
@@ -176,10 +175,11 @@ class investments {
       return "SUCCESS: Sold all of \"" + itemName + "\"";
     } 
     else {
-      this.#table[index][1] = (parseInt(row[1]) - count).toFixed();
+      const newCount = parseInt(row[1]) - count;
+      this.#table[index][1] = (newCount).toFixed();
       this.#table[index][3] = (parseFloat(row[3]) - parseFloat(row[4]) * count).toFixed(2);
-      this.#table[index][2] = ((parseFloat(row[3]) - parseFloat(row[4]) * count) / count).toFixed(2);
-      this.#table[index][6] = ((parseFloat(row[5]) - parseFloat(this.#table[index][2])) * count).toFixed(2);
+      this.#table[index][2] = (parseFloat(this.#table[index][3]) / newCount).toFixed(2);
+      this.#table[index][6] = ((parseFloat(row[5]) - parseFloat(this.#table[index][2])) * newCount).toFixed(2);
       return "SUCCESS: Sold " + count + " of \"" + itemName + "\"";
     }
   }
@@ -201,14 +201,16 @@ class investments {
   
   // @ts-expect-error any type
   static getMarketPrice(itemName: string, callback) {
-    const url = "https://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=" + itemName.replace("&", "%26").replace(":", "%3A");
+    if (itemName != "name") {
+      const url = "https://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=" + itemName.replace("&", "%26").replace(":", "%3A");
 
-    jQuery.getJSON(url, (data) => {
-      if ((data[0] === false)) {
-        callback("false");
-      }
-      return callback(data["median_price"].slice(1));
-    });
+      jQuery.getJSON(url, (data) => {
+        if ((data[0] === false)) {
+          callback("false");
+        }
+        return callback(data["median_price"].slice(1));
+      });
+    }
   }
 
   setMarketPrice(itemName: string) {
@@ -224,7 +226,7 @@ class investments {
   }
 }
 
-const data = new investments();
+let data = new investments();
 
 export default function App() {
   const [page, setPage] = useState("Home");
@@ -243,6 +245,12 @@ export default function App() {
   function handleNavClick(newPage: string) {
     console.log("Changed page to " + newPage);
     setPage(newPage);
+  }
+
+  function handleUpdatePricesButton() {
+    data.updateAllMarketPrices();
+    setTable(data.table);
+    setPage("Investments");
   }
 
   function NavPane() {
@@ -319,10 +327,7 @@ export default function App() {
       <>
         <Container>
           <Button
-            onClick={() => {
-              data.updateAllMarketPrices();
-              setTable(data.table);
-            }}
+            onClick={() => { handleUpdatePricesButton() }}
             variant="secondary"
             style={{ float: "right" }}
           >
@@ -350,21 +355,24 @@ export default function App() {
   }
 
   function TableRows() {
-    return table.slice().map((row) => {
-      return (
-        <tr key={"row" + data.getIndex(row[0])}>
-          <td>{row[0]}</td>
-          <td>{row[1]}</td>
-          <td>${row[2]}</td>
-          <td>${row[3]}</td>
-          <td>${row[4]}</td>
-          <td>${row[6]}</td>
-        </tr>
-      );
+    return table.map((row) => {
+      if(row[0] != "name") {
+        return (
+          <tr key={"row" + data.getIndex(row[0])}>
+            <td key={"row" + data.getIndex(row[0]) + ",0"}>{row[0]}</td>
+            <td key={"row" + data.getIndex(row[0]) + ",1"}>{row[1]}</td>
+            <td key={"row" + data.getIndex(row[0]) + ",2"}>${row[2]}</td>
+            <td key={"row" + data.getIndex(row[0]) + ",3"}>${row[3]}</td>
+            <td key={"row" + data.getIndex(row[0]) + ",4"}>${row[4]}</td>
+            <td key={"row" + data.getIndex(row[0]) + ",6"}>${row[6]}</td>
+          </tr>
+        );
+      }
     });
   }
 
   function InputCSV() {
+    data = new investments();
     // @ts-expect-error any type
     const changeHandler = (event) => {
       data.uploadCSV(event.target.files[0], () => {
@@ -493,6 +501,7 @@ export default function App() {
 
     function handleRemoveItem(name: string, count: number) {
       const success = data.removeItem(name, count);
+      setTable(data.table);
       console.log(success);
     }
 
