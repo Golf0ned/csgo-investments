@@ -14,50 +14,51 @@ import {
   Table,
 } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
-
-/* 
-Todo:
-- add non-plugin server functionality
-*/
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+import jQuery from "jquery";
 import Papa from "papaparse";
 
 import TitleContent from "./components/TitleContent";
 
 import "./App.css";
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import jQuery from "jquery";
+/** 
+
+GENERAL TODO:
+- add non-plugin server functionality
+
+**/
+
 
 class investments {
-  #totalInitialInvestment;
-  #totalCurrentInvestment;
+  #totalBuyPrice;
+  #totalCurPrice;
   #table;
-  //@ts-ignore
   #nameToIndex;
 
   constructor() {
-    // TODO: open filstream for file, update initial and current investments from file, and update lastUpdated timestamp
-    this.#totalInitialInvestment = 0.0;
-    this.#totalCurrentInvestment = 0.0;
-    this.#table = [["please", "enter", "some", "data", 0.0, 0.0, 0.0]];
-    this.#nameToIndex = [];
+    this.#totalBuyPrice = 0.0;
+    this.#totalCurPrice = 0.0;
+    this.#table = [["name", "count", "avgBuyPrice", "totalBuyPrice", "curPrice", "curPriceWithTax", "totalProfit"]];
+    this.#nameToIndex = ["indexedNames"];
   }
 
-  /* @ts-expect-error */
+  get totalBuyPrice() { return this.#totalBuyPrice }
+  get totalCurPrice() { return this.#totalCurPrice }
+  get table() { return this.#table }
+  set table(value) { this.#table = value }
+
+  getTotalProfit() { return this.#totalCurPrice / 1.15 - this.#totalBuyPrice }
+  getIndex(name: string) { return this.#nameToIndex.indexOf(name) }
+
+  // @ts-expect-error any types
   async uploadCSV(file, callback) {
     async function parse() {
       return await new Promise((resolve, reject) => {
         try {
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
           Papa.parse(file, {
             header: true,
             skipEmptyLines: true,
-            /* @ts-expect-error */
+            // @ts-expect-error any type
             complete: (results) => {
               resolve(results.data);
             },
@@ -73,195 +74,135 @@ class investments {
     });
   }
 
-  /* @ts-expect-error */
+  // @ts-expect-error any type
   processData(inCSV) {
-    var outTable: any[] = [];
-    var totalCurCost = 0.0;
-    var totalInitCost = 0.0;
+    const outTable = [];
+    let overallBuyPrice = 0.0;
+    let overallCurPrice = 0.0;
 
-    for (var i = 0; i < inCSV.length; i++) {
-      var curRow = inCSV[i];
-      this.addNameToIndex(curRow.name);
-      totalInitCost += parseFloat(curRow.totalCost);
-      totalCurCost += curRow.count * parseFloat(curRow.marketPrice);
-      outTable = [
-        ...outTable,
-        [
-          curRow.name,
-          curRow.count,
-          curRow.totalCost,
-          curRow.marketPrice,
-          curRow.totalCost / curRow.count,
-          curRow.marketPrice / 1.15,
-          (curRow.marketPrice / 1.15 - curRow.totalCost / curRow.count) *
-            curRow.count,
-        ],
-      ];
+    for (let i = 0; i < inCSV.length; i++) {
+      const curRow = inCSV[i];
+      //console.log(curRow);
+
+      const name = curRow.name;
+      const count = curRow.count;
+      const avgBuyPrice = (parseFloat(curRow.totalBuyPrice) / parseInt(curRow.count)).toFixed(2);
+      const totalBuyPrice = curRow.totalBuyPrice;
+      const curPrice = curRow.curPrice;
+      const curPriceWithTax = (parseFloat(curRow.curPrice) / 1.15).toFixed(2);
+      const totalProfit = ((parseFloat(curPriceWithTax) - parseFloat(avgBuyPrice)) * parseInt(count)).toFixed(2);
+
+      this.#nameToIndex.push(name);
+
+      overallBuyPrice += parseFloat(totalBuyPrice);
+      overallCurPrice += parseFloat(curPrice) * parseInt(count);
+      outTable.push([name, count, avgBuyPrice, totalBuyPrice,
+        curPrice, curPriceWithTax, totalProfit]);
     }
 
     this.#table = outTable;
-    this.#totalCurrentInvestment = totalCurCost;
-    this.#totalInitialInvestment = totalInitCost;
+    this.#totalBuyPrice = overallBuyPrice;
+    this.#totalCurPrice = overallCurPrice;
+    this.#nameToIndex.splice(0, 1);
 
-    console.log(this.table);
+    console.log(this.#table);
+    //console.log(this.#nameToIndex);
   }
 
   exportCSV() {
-    const outTable = this.table.slice();
-
-    return (
-      ",name,count,totalCost,marketPrice\n" +
-      outTable.map((v) => v.slice(0, 4).join(",")).join("\n")
-    );
-  }
-
-  addNameToIndex(name: string) {
-    this.#nameToIndex.push(name);
-  }
-
-  getIndex(name: string) {
-    return this.#nameToIndex.indexOf(name);
-  }
-
-  set table(value) {
-    this.#table = value;
-  }
-
-  get totalCurrentInvestment() {
-    return this.#totalCurrentInvestment;
-  }
-
-  get totalInitialInvestment() {
-    return this.#totalInitialInvestment;
-  }
-
-  get table() {
-    return this.#table;
-  }
-
-  getTotalProfit() {
-    return this.totalCurrentInvestment / 1.15 - this.totalInitialInvestment;
+    const outTable = this.#table.slice();
+    return ("," + outTable.map((v) => (v[0] + "," + v[1] + "," + v[3] + "," + v[4])).join("\n"));
   }
 
   addItem(itemName: string, count: number, price: number) {
-    var index = this.getIndex(itemName);
-    if (index != -1) {
-      this.#table[index][1] = parseInt(this.#table[index][1] as string) + count;
-      this.#table[index][2] =
-        parseInt(this.#table[index][2] as string) + price * count;
-      this.#table[index][4] =
-        parseFloat(this.#table[index][2] as string) /
-        parseInt(this.#table[index][1] as string);
-      this.#table[index][6] =
-        (parseFloat(this.#table[index][5] as string) -
-          parseFloat(this.#table[index][4] as string)) *
-        parseInt(this.#table[index][1] as string);
-      this.#totalInitialInvestment += price * count;
-      return "success";
+    const index = this.getIndex(itemName);
+    if (index != -1 && itemName != "name") {
+      const row = this.#table[index];
+      this.#table[index][1] = (parseInt(row[1]) + count).toFixed();
+      this.#table[index][3] = (parseFloat(row[3]) + price * count).toFixed(2);
+      this.#table[index][2] = ((parseFloat(row[3]) + price * count) / count).toFixed(2);
+      this.#table[index][6] = ((parseFloat(row[5]) - parseFloat(this.#table[index][2])) * count).toFixed(2);
+
+      this.#totalBuyPrice += price * count;
+      this.#totalCurPrice += parseFloat(this.#table[index][4]) * count;
+      return "SUCCESS: Updated values for \"" + itemName + "\"";
     }
 
-    this.#totalInitialInvestment += price * count;
-    var marketPrice = "0.01";
-    this.getMarketPrice(itemName, (value: string) => {
+
+    let marketPrice = "0.01";
+    investments.getMarketPrice(itemName, (value: string) => {
       // TODO: Figure out waiting for this ******************************************************
       marketPrice = value;
       if (marketPrice === "false") {
-        return "Invalid item name: make sure it's identical to the name on the Steam market.";
+        return "FAILURE: Invalid item name: make sure it's identical to the name on the Steam market (or maybe Steam API is being stinky).";
       }
 
-      if (
-        this.table.toString() ===
-        [["please", "enter", "some", "data", 0.0, 0.0, 0.0]].toString()
-      ) {
-        this.#table = [
-          [
-            itemName,
-            count as unknown as string,
-            (price * count) as unknown as string,
-            marketPrice,
-            price,
-            parseFloat(marketPrice) / 1.15,
-            (parseFloat(marketPrice) / 1.15 - price) * count,
-          ],
-        ];
-      } else {
-        this.#table.push([
-          itemName,
-          count as unknown as string,
-          (price * count) as unknown as string,
-          marketPrice,
-          price,
-          parseFloat(marketPrice) / 1.15,
-          (parseFloat(marketPrice) / 1.15 - price) * count,
-        ]);
-      }
+      this.#table.push([
+        itemName,
+        count.toFixed(),
+        (price).toFixed(2),
+        (price * count).toFixed(2),
+        marketPrice,
+        (parseFloat(marketPrice) / 1.15).toFixed(2),
+        ((parseFloat(marketPrice) / 1.15 - price) * count).toFixed(2),
+      ]);
+
       this.#nameToIndex.push(itemName);
-      return "success";
+      this.#totalBuyPrice += price * count;
+      this.#totalCurPrice += parseFloat(marketPrice) * count;
+
+      return "SUCCESS: Added \"" + itemName + "\"";
     });
   }
 
   removeItem(itemName: string, count: number) {
-    var index = this.getIndex(itemName);
+    const index = this.getIndex(itemName);
     if (index === -1) {
-      return "You don't own any of \"" + itemName + '".';
+      return "FAILURE: You don't own any of \"" + itemName + '".';
     }
-    if (parseInt(this.#table[index][1] as string) - count < 0) {
-      return (
-        "Can't remove " +
-        count +
-        " items when you own " +
-        parseInt(this.#table[index][1] as string) +
-        "."
-      );
-    } else if (parseInt(this.#table[index][1] as string) - count == 0) {
-      this.#totalInitialInvestment -= parseInt(this.#table[index][2] as string);
+    if (parseInt(this.#table[index][1]) - count < 0) {
+      return "FAILURE: Can't remove " + count + " items when you own " + parseInt(this.#table[index][1] as string) + ".";
+    } 
+
+    const row = this.#table[index];
+    this.#totalBuyPrice -= parseFloat(row[2]);
+    this.#totalCurPrice -= parseFloat(row[4]) * count;
+
+    if (parseInt(row[1]) - count === 0) {
       this.#table.splice(index, 1);
       this.#nameToIndex.splice(index, 1);
-      return "success";
-    } else {
-      this.#table[index][1] = (
-        parseInt(this.#table[index][1] as string) - count
-      ).toString();
-      this.#totalInitialInvestment -=
-        parseFloat(this.#table[index][4] as string) * count;
-      this.#table[index][2] = (
-        parseFloat(this.#table[index][4] as string) *
-        parseInt(this.#table[index][1] as string)
-      ).toFixed(2);
-      this.#table[index][6] =
-        (parseFloat(this.#table[index][5] as string) -
-          parseFloat(this.#table[index][4] as string)) *
-        parseInt(this.#table[index][1] as string);
-      return "success";
+      return "SUCCESS: Sold all of \"" + itemName + "\"";
+    } 
+    else {
+      this.#table[index][1] = (parseInt(row[1]) - count).toFixed();
+      this.#table[index][3] = (parseFloat(row[3]) - parseFloat(row[4]) * count).toFixed(2);
+      this.#table[index][2] = ((parseFloat(row[3]) - parseFloat(row[4]) * count) / count).toFixed(2);
+      this.#table[index][6] = ((parseFloat(row[5]) - parseFloat(this.#table[index][2])) * count).toFixed(2);
+      return "SUCCESS: Sold " + count + " of \"" + itemName + "\"";
     }
   }
 
   updateAllMarketPrices() {
-    for (var i = 0; i < this.#table.length; i++) {
-      this.setMarketPrice(this.#table[i][0] as string);
-      console.log("First: [" + i + "]" + this.#table[i][3]);
+    for (let i = 0; i < this.#table.length; i++) {
+      this.setMarketPrice(this.#table[i][0]);
     }
   }
 
   updateCurrentInvestment() {
-    var cur = 0;
-    for (var i = 0; i < this.#table.length; i++) {
-      cur +=
-        parseFloat(this.#table[i][3] as string) *
-        parseInt(this.#table[i][1] as string);
+    let cur = 0.0;
+    for (let i = 0; i < this.#table.length; i++) {
+      const row = this.#table[i];
+      cur += parseFloat(row[4]) * parseInt(row[1]);
     }
-    this.#totalCurrentInvestment = cur;
+    this.#totalCurPrice = cur;
   }
-
-  getMarketPrice(itemName: string, callback: Function) {
-    var urlItemName = itemName.replace("&", "%26").replace(":", "%3A");
-
-    var url =
-      "https://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=" +
-      urlItemName;
+  
+  // @ts-expect-error any type
+  static getMarketPrice(itemName: string, callback) {
+    const url = "https://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=" + itemName.replace("&", "%26").replace(":", "%3A");
 
     jQuery.getJSON(url, (data) => {
-      if ((data[0] = false)) {
+      if ((data[0] === false)) {
         callback("false");
       }
       return callback(data["median_price"].slice(1));
@@ -269,34 +210,37 @@ class investments {
   }
 
   setMarketPrice(itemName: string) {
-    this.getMarketPrice(itemName, (price: string) => {
-      this.table[this.getIndex(itemName)][3] = price;
-      this.table[this.getIndex(itemName)][5] = parseFloat(price) / 1.15;
-      this.table[this.getIndex(itemName)][6] =
-        (parseFloat(price) / 1.15 -
-          parseFloat(this.table[this.getIndex(itemName)][4] as string)) *
-        parseInt(this.table[this.getIndex(itemName)][1] as string);
+    investments.getMarketPrice(itemName, (marketPrice: string) => {
+      //console.log(marketPrice);
+      const index = this.getIndex(itemName);
+      const row = this.#table[index];
+
+      this.#table[index][4] = marketPrice;
+      this.#table[index][5] = (parseFloat(marketPrice) / 1.15).toFixed(2);
+      this.#table[index][6] = ((parseFloat(this.#table[index][5]) - parseFloat(row[2])) * parseInt(row[1])).toFixed(2);
     });
   }
 }
 
-var data = new investments();
+const data = new investments();
 
 export default function App() {
   const [page, setPage] = useState("Home");
-  const [initInvestment, setInitInvestment] = useState(
-    data.totalInitialInvestment
-  );
-  const [curInvestment, setCurInvestment] = useState(
-    data.totalCurrentInvestment
-  );
+  const [initInvestment, setInitInvestment] = useState(data.totalBuyPrice);
+  const [curInvestment, setCurInvestment] = useState(data.totalCurPrice);
   const [totalProfit, setTotalProfit] = useState(data.getTotalProfit());
+  const [table, setTable] = useState(data.table);
 
   function refreshAll() {
     data.updateCurrentInvestment();
-    setInitInvestment(data.totalInitialInvestment);
-    setCurInvestment(data.totalCurrentInvestment);
+    setInitInvestment(data.totalBuyPrice);
+    setCurInvestment(data.totalCurPrice);
     setTotalProfit(data.getTotalProfit());
+  }
+
+  function handleNavClick(newPage: string) {
+    console.log("Changed page to " + newPage);
+    setPage(newPage);
   }
 
   function NavPane() {
@@ -340,7 +284,7 @@ export default function App() {
   function InvestmentTable() {
     if (
       data.table.toString() ===
-      [["please", "enter", "some", "data", 0.0, 0.0, 0.0]].toString()
+      [["name", "count", "avgBuyPrice", "totalBuyPrice", "curPrice", "curPriceWithTax", "totalProfit"]].toString()
     ) {
       return (
         <Stack gap={3}>
@@ -375,6 +319,7 @@ export default function App() {
           <Button
             onClick={() => {
               data.updateAllMarketPrices();
+              setTable(data.table);
             }}
             variant="secondary"
             style={{ float: "right" }}
@@ -388,9 +333,10 @@ export default function App() {
             <tr>
               <th>Name</th>
               <th>#</th>
-              <th>Invested Unit Price</th>
-              <th>Current Unit Price</th>
-              <th>Profit (w/ Market Fees)</th>
+              <th>Average Buy Price</th>
+              <th>Total Buy Price</th>
+              <th>Steam Sell Price</th>
+              <th>Total Profit (w/ Steam Tax)</th>
             </tr>
           </thead>
           <tbody>
@@ -402,34 +348,28 @@ export default function App() {
   }
 
   function TableRows() {
-    return data.table.slice().map((row) => {
-      if (
-        typeof row[3] === "string" &&
-        typeof row[4] === "number" &&
-        typeof row[6] === "number"
-      ) {
-        return (
-          <tr key={"row" + data.getIndex(row[0] as string)}>
-            <td>{row[0]}</td>
-            <td>{row[1]}</td>
-            <td>${row[4].toFixed(2)}</td>
-            <td>${parseFloat(row[3]).toFixed(2)}</td>
-            <td>${row[6].toFixed(2)}</td>
-          </tr>
-        );
-      }
+    return table.slice().map((row) => {
+      return (
+        <tr key={"row" + data.getIndex(row[0])}>
+          <td>{row[0]}</td>
+          <td>{row[1]}</td>
+          <td>${row[2]}</td>
+          <td>${row[3]}</td>
+          <td>${row[4]}</td>
+          <td>${row[6]}</td>
+        </tr>
+      );
     });
   }
 
-  function handleNavClick(newPage: string) {
-    console.log("page now " + newPage);
-    setPage(newPage);
-  }
-
   function InputCSV() {
-    /* @ts-expect-error */
+    // @ts-expect-error any type
     const changeHandler = (event) => {
-      data.uploadCSV(event.target.files[0], () => refreshAll());
+      data.uploadCSV(event.target.files[0], () => {
+        refreshAll();
+        setTable(data.table);
+        setPage("Investments");
+      });
     };
 
     return (
@@ -445,7 +385,7 @@ export default function App() {
   function OutputCSV() {
     function exportData() {
       const out = encodeURI("data:text/csv;charset=utf-8" + data.exportCSV());
-      var link = document.createElement("a");
+      const link = document.createElement("a");
       link.setAttribute("href", out);
       link.setAttribute("download", "output.csv");
       document.body.appendChild(link); // Required for FF
@@ -472,7 +412,8 @@ export default function App() {
     const [formPrice, setFormPrice] = useState(0.0);
 
     function handleAddItem(name: string, count: number, price: number) {
-      var success = data.addItem(name, count, price);
+      const success = data.addItem(name, count, price);
+      setTable(data.table);
       console.log(success);
     }
 
@@ -549,7 +490,7 @@ export default function App() {
     const [formCount, setFormCount] = useState(0);
 
     function handleRemoveItem(name: string, count: number) {
-      var success = data.removeItem(name, count);
+      const success = data.removeItem(name, count);
       console.log(success);
     }
 
@@ -627,7 +568,7 @@ export default function App() {
               </Col>
               <Col>
                 <Card>
-                  <Card.Header>Total Profit (w/ Market Fees)</Card.Header>
+                  <Card.Header>Total Profit (w/ Steam Tax)</Card.Header>
                   <Card.Body>${totalProfit.toFixed(2)}</Card.Body>
                 </Card>
               </Col>
