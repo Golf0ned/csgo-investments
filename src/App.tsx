@@ -15,6 +15,8 @@ import {
 } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import jQuery from "jquery";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import Papa from "papaparse";
 
 import TitleContent from "./components/TitleContent";
