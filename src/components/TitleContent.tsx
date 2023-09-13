@@ -4,7 +4,7 @@ export default function TitleContent() {
   return (
     <>
       <Row>
-        <h1>Golf0ned's CSGO Investment Tracker</h1>
+        <h1>Golf0ned's CS:GO Investment Tracker</h1>
       </Row>
       <Row>
         <div>Got tired of updating spreadsheet. Made web app to do thing.</div>
