@@ -120,9 +120,11 @@ class investments {
     const index = this.getIndex(itemName);
     if (index != -1 && itemName != "name") {
       const row = this.#table[index];
-      this.#table[index][1] = (parseInt(row[1]) + count).toFixed();
-      this.#table[index][3] = (parseFloat(row[3]) + price * count).toFixed(2);
-      this.#table[index][2] = ((parseFloat(row[3]) + price * count) / count).toFixed(2);
+      const newCount = (parseInt(row[1]) + count);
+      const newTotal = parseFloat(row[3]) + price * count;
+      this.#table[index][1] = newCount.toFixed();
+      this.#table[index][3] = newTotal.toFixed(2);
+      this.#table[index][2] = (newTotal / newCount).toFixed(2);
       this.#table[index][6] = ((parseFloat(row[5]) - parseFloat(this.#table[index][2])) * count).toFixed(2);
 
       this.#totalBuyPrice += price * count;
