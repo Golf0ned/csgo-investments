@@ -374,9 +374,9 @@ export default function App() {
   }
 
   function InputCSV() {
-    data = new investments();
     // @ts-expect-error any type
     const changeHandler = (event) => {
+      data = new investments();
       data.uploadCSV(event.target.files[0], () => {
         refreshAll();
         setTable(data.table);
