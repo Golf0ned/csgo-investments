@@ -108,7 +108,7 @@ class investments {
     this.#totalCurPrice = overallCurPrice;
     this.#nameToIndex.splice(0, 1);
 
-    console.log(this.#table);
+    //console.log(this.#table);
     //console.log(this.#nameToIndex);
   }
 
@@ -140,7 +140,9 @@ class investments {
       if (marketPrice === "false") {
         return "FAILURE: Invalid item name: make sure it's identical to the name on the Steam market (or maybe Steam API is being stinky).";
       }
-
+      if (this.table.toString() == ["name", "count", "avgBuyPrice", "totalBuyPrice", "curPrice", "curPriceWithTax", "totalProfit"].toString()) {
+        this.#table = []
+      }
       this.#table.push([
         itemName,
         count.toFixed(),
@@ -175,6 +177,9 @@ class investments {
     if (parseInt(row[1]) - count === 0) {
       this.#table.splice(index, 1);
       this.#nameToIndex.splice(index, 1);
+      if (this.#table.toString() === "") {
+        this.#table = [["name", "count", "avgBuyPrice", "totalBuyPrice", "curPrice", "curPriceWithTax", "totalProfit"]];
+      }
       return "SUCCESS: Sold all of \"" + itemName + "\"";
     } 
     else {
@@ -190,6 +195,7 @@ class investments {
     for (let i = 0; i < this.#table.length; i++) {
       this.setMarketPrice(this.#table[i][0]);
     }
+    //console.log(this.table)
   }
 
   updateCurrentInvestment() {
@@ -245,7 +251,7 @@ export default function App() {
   }
 
   function handleNavClick(newPage: string) {
-    console.log("Changed page to " + newPage);
+    //console.log("Changed page to " + newPage);
     setPage(newPage);
   }
 
@@ -427,6 +433,9 @@ export default function App() {
       const success = data.addItem(name, count, price);
       setTable(data.table);
       console.log(success);
+      setFormName("name");
+      setFormCount(0);
+      setFormPrice(0.0);
     }
 
     return (
@@ -437,6 +446,8 @@ export default function App() {
           onSubmit={(e) => {
             e.preventDefault();
             handleAddItem(formName, formCount, formPrice);
+            // @ts-expect-error reset
+            e.target.reset();
           }}
         >
           <Stack gap={3}>
@@ -505,6 +516,8 @@ export default function App() {
       const success = data.removeItem(name, count);
       setTable(data.table);
       console.log(success);
+      setFormName("name");
+      setFormCount(0);
     }
 
     return (
@@ -515,6 +528,8 @@ export default function App() {
           onSubmit={(e) => {
             e.preventDefault();
             handleRemoveItem(formName, formCount);
+            // @ts-expect-error reset
+            e.target.reset()
           }}
         >
           <Stack gap={3}>
