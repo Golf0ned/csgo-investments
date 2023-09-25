@@ -27,6 +27,7 @@ import "./App.css";
 
 GENERAL TODO:
 - add non-plugin server functionality
+- add alerts
 
 **/
 
@@ -113,7 +114,7 @@ class investments {
 
   exportCSV() {
     const outTable = this.#table.slice();
-    return ("," + outTable.map((v) => (v[0] + "," + v[1] + "," + v[3] + "," + v[4])).join("\n"));
+    return (",name,count,totalBuyPrice,curPrice\n" + outTable.map((v) => (v[0] + "," + v[1] + "," + v[3] + "," + v[4])).join("\n"));
   }
 
   addItem(itemName: string, count: number, price: number) {
