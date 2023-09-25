@@ -180,8 +180,7 @@ class investments {
     else {
       const newCount = parseInt(row[1]) - count;
       this.#table[index][1] = (newCount).toFixed();
-      this.#table[index][3] = (parseFloat(row[3]) - parseFloat(row[4]) * count).toFixed(2);
-      this.#table[index][2] = (parseFloat(this.#table[index][3]) / newCount).toFixed(2);
+      this.#table[index][3] = (parseFloat(row[2]) * newCount).toFixed(2);
       this.#table[index][6] = ((parseFloat(row[5]) - parseFloat(this.#table[index][2])) * newCount).toFixed(2);
       return "SUCCESS: Sold " + count + " of \"" + itemName + "\"";
     }
