@@ -4,4 +4,4 @@ I got tired of manually updating a spreadsheet, so I made this to pull from the 
 
 Built in React.js through Vite and hosted through GitHub Pages.
 
-Still under construction.
+Link in about section!
